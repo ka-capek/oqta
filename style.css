@@ -38,9 +38,14 @@ nav a {
 	font-size: 2em;
 	border: solid 1.5px black;
 	box-shadow: 5px 5px 2px grey;
+	text-decoration: none;
+	color: black;
+	transition: transform 300ms, box-shadow 300ms;
+	
 }
 
 nav a:active {
-	font-size: 2.2em;
-	box shadow: 5px 5px 2px grey inset;
+	transform: scale(1.05);
+	box-shadow: 2.5px 2.5px 2px grey inset;
+	color: black;
 }
