@@ -6,11 +6,10 @@ body {
 main {
     width: 80%;
     max-width: 1000px;
-    min-height: 100vh;
-
-    margin: 0 auto;
+    margin: 40px auto;
+    padding: 32px;
 
     background: white;
-    padding: 32px;
+    min-height: calc(100vh - 80px);
     box-sizing: border-box;
 }
