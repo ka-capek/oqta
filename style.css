@@ -1,0 +1,16 @@
+body {
+    margin: 0;
+    background: black;
+}
+
+main {
+    width: 80%;
+    max-width: 1000px;
+    min-height: 100vh;
+
+    margin: 0 auto;
+
+    background: white;
+    padding: 32px;
+    box-sizing: border-box;
+}
