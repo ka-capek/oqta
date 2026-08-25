@@ -3,7 +3,7 @@ body {
     background: black;
 }
 
-main {
+.page {
     width: 80%;
     max-width: 1000px;
     margin: 40px auto;
@@ -12,4 +12,8 @@ main {
     background: white;
     min-height: calc(100vh - 80px);
     box-sizing: border-box;
+}
+
+nav {
+	border: solid 3px black
 }
