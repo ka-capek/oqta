@@ -9,166 +9,93 @@
 </head>
 <body>
 
-<!-- =========================================================================
-     THE FILTER
-
-     Four things worth knowing:
-
-     1. feImage loads the map that the script paints into a canvas.
-        preserveAspectRatio="none" is required - without it the map letterboxes
-        instead of stretching, and the bulge ends up off-centre.
-
-     2. feDisplacementMap reads R for the X move and G for the Y move.
-        The default channel is A, which on an opaque map means "shift
-        everything by scale/2" - always set both selectors.
-
-     3. color-interpolation-filters="sRGB" is required. The default is
-        linearRGB, which converts the map's values before reading them, so
-        the numbers you painted are not the numbers it uses.
-
-     4. the region is 0%/100% so the map lines up exactly with .crt-tube.
-        The default region is -10%/120%, which would make the map 20% larger
-        than the box and knock the bulge out of alignment.
-     ========================================================================= -->
-<svg width="0" height="0" style="position:absolute">
-	<defs>
-		<filter id="bulge" color-interpolation-filters="sRGB"
-		        x="0%" y="0%" width="100%" height="100%">
-
-			<feImage id="mapImg" preserveAspectRatio="none" result="map"/>
-
-			<feDisplacementMap id="disp" in="SourceGraphic" in2="map"
-			                   scale="0"
-			                   xChannelSelector="R" yChannelSelector="G"/>
-
-			<!-- feDisplacementMap resamples with nearest-neighbour, so glyph
-			     edges come out chewed. A little blur takes the edge off it.
-			     0.3-0.5 is the useful range; past ~0.6 you are just blurring
-			     the page. Set stdDeviation="0" to see the raw output. -->
-			<feGaussianBlur id="post" stdDeviation="0.35"/>
-		</filter>
-	</defs>
-</svg>
-
-<nav>
-	<a href="index.html">home</a>
-</nav>
-
-<div class="crt-tube" id="tube">
+<div class="crt">
 	<div class="crt-screen">
-		<h1>Oqta</h1>
-		<p>Welcome to my personal site! I want to make this my own corner of the
-		internet. Good vibes, clanker-free.</p>
-		<p>The grid below is the honest test &mdash; straight lines show the
-		geometry that text hides.</p>
-		<div class="grid"></div>
+		<nav>
+			<a href="index.html">home</a>
+			<a href="tech-demo.html">tech demo</a>
+		</nav>
+
+		<main>
+			<h1>Oqta</h1>
+			<p>Welcome to my personal site! I want to make this my own corner of
+			the internet. Good vibes, clanker-free.</p>
+			<p>This page is the same page as the index, only it is sitting on a
+			piece of curved glass. The edges bow out, the corners tuck in, the
+			middle keeps its scale &mdash; and the text is still text: you can
+			select it, follow the links, and read it with a screen reader.</p>
+			<h2>How</h2>
+			<p>CSS transforms are affine, so they cannot bend a straight line.
+			The warp is an SVG <code>feDisplacementMap</code>, reached from CSS
+			with <code>filter: url()</code>. Its map is mixed together from
+			three gradients inside the filter, so nothing is loaded from disk
+			and nothing is scripted.</p>
+			<p>No glow, no scanlines, no glare. Just the shape.</p>
+		</main>
 	</div>
 </div>
 
-<script>
-const tube    = document.getElementById('tube');
-const mapImg  = document.getElementById('mapImg');
-const disp    = document.getElementById('disp');
-const post    = document.getElementById('post');
-const sEl     = 0.16;
-const cEl     = 0.20;
-const pEl     = 0.35;
-const showmap = document.getElementById('showmap');
-const XLINK   = 'http://www.w3.org/1999/xlink';
+<!-- =========================================================================
+     The barrel warp.
 
-/* ---------------------------------------------------------------------------
-   Paint the displacement map into a canvas, one pixel at a time.
+     feDisplacementMap moves each output pixel's sample point by
+         dx = scale * (map.R - 0.5)
+         dy = scale * (map.G - 0.5)
+     so a map that is flat 0.5 grey does nothing, and one where the
+     deviation from 0.5 points outward and grows with r^2 is a barrel:
+     content is pulled in hardest at the corners, so the edges bow out.
 
-     R = how far to move in X
-     G = how far to move in Y
-     128 = stay put
+     Built here as   map = w * (g - 0.5) + 0.5   with feComposite's
+     arithmetic mode (k1*i1*i2 + k2*i1 + k3*i2 + k4). k1/k3/k4 of
+     1 / -0.5 / 0.5 also happen to leave alpha at exactly 1, which
+     matters: feDisplacementMap un-premultiplies its map, and any other
+     alpha would drag the whole picture off-centre.
 
-   The maths, for a pixel at (x, y) where both run -1 .. 1 across the box:
+     Tuning: scale is the amount of bulge, in pixels. The 0.71 radius on
+     the weight gradient is where the falloff reaches full strength - it
+     puts that point exactly at the corners.
+     ========================================================================= -->
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"
+     style="position:absolute" aria-hidden="true" focusable="false">
+	<filter id="crt-bulge" x="0" y="0" width="100%" height="100%"
+	        color-interpolation-filters="sRGB">
 
-     gx = (1 - y*y) ^ curve          how much of the horizontal push applies
-                                     at this height
-     dx = -x * strength * gx
+		<!-- x ramp: 0 at the left edge, 1 at the right -->
+		<feImage result="gx" preserveAspectRatio="none"
+			href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><linearGradient id='g' x1='0' y1='0' x2='1' y2='0'><stop offset='0' stop-color='%23000'/><stop offset='1' stop-color='%23fff'/></linearGradient><rect width='100' height='100' fill='url(%23g)'/></svg>"/>
 
-   The minus sign is the important bit. Every output pixel samples INWARD
-   (left of centre pulls from the right, and vice versa), which spreads the
-   content OUTWARD. That is the bulge.
+		<!-- y ramp: 0 at the top, 1 at the bottom -->
+		<feImage result="gy" preserveAspectRatio="none"
+			href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23000'/><stop offset='1' stop-color='%23fff'/></linearGradient><rect width='100' height='100' fill='url(%23g)'/></svg>"/>
 
-   `curve` shapes the edges:
-     0.20  push stays near-uniform down the whole edge -> straight, sharp edges
-     1.00  push tapers to nothing at the corners       -> edges arc into them
-   Low values are what keep the edges crisp.
+		<!-- weight: 0 dead centre, 1 at the corners, squared falloff -->
+		<feImage result="w" preserveAspectRatio="none"
+			href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><radialGradient id='g' cx='0.5' cy='0.5' r='0.71'><stop offset='0' stop-color='%23000000'/><stop offset='0.25' stop-color='%23101010'/><stop offset='0.5' stop-color='%23404040'/><stop offset='0.75' stop-color='%23909090'/><stop offset='1' stop-color='%23ffffff'/></radialGradient><rect width='100' height='100' fill='url(%23g)'/></svg>"/>
 
-   Everything is divided by `peak` so the map uses the full 0-255 range. Skip
-   that and you would only use ~40 of the 255 levels, and since each level is
-   worth several pixels at this scale, the result comes out in visible
-   stair-steps.
-   --------------------------------------------------------------------------- */
-function buildMap(strength, curve, N = 512) {
-	const cv = document.createElement('canvas');
-	cv.width = cv.height = N;
-	const ctx = cv.getContext('2d');
-	const img = ctx.createImageData(N, N);
-	const d = img.data;
+		<!-- w * (gx - 0.5) + 0.5   and the same for gy -->
+		<feComposite in="gx" in2="w" operator="arithmetic"
+		             k1="1" k2="0" k3="-0.5" k4="0.5" result="dx"/>
+		<feComposite in="gy" in2="w" operator="arithmetic"
+		             k1="1" k2="0" k3="-0.5" k4="0.5" result="dy"/>
 
-	const peak = strength || 1e-6;          // the largest |dx| we will produce
+		<!-- keep the horizontal offset in R, the vertical one in G -->
+		<feColorMatrix in="dx" type="matrix" result="mr"
+			values="1 0 0 0 0
+			        0 0 0 0 0
+			        0 0 0 0 0
+			        0 0 0 0 1"/>
+		<feColorMatrix in="dy" type="matrix" result="mg"
+			values="0 0 0 0 0
+			        1 0 0 0 0
+			        0 0 0 0 0
+			        0 0 0 0 1"/>
+		<feComposite in="mr" in2="mg" operator="arithmetic"
+		             k1="0" k2="1" k3="1" k4="0" result="map"/>
 
-	for (let py = 0; py < N; py++) {
-		for (let px = 0; px < N; px++) {
-			const x = (px / (N - 1)) * 2 - 1;
-			const y = (py / (N - 1)) * 2 - 1;
-
-			const gx = Math.pow(Math.max(0, 1 - y * y), curve);
-			const gy = Math.pow(Math.max(0, 1 - x * x), curve);
-
-			const dx = -x * strength * gx / peak;
-			const dy = -y * strength * gy / peak;
-
-			const i = (py * N + px) * 4;
-			d[i]     = Math.max(0, Math.min(255, Math.round(128 + 127 * dx)));
-			d[i + 1] = Math.max(0, Math.min(255, Math.round(128 + 127 * dy)));
-			d[i + 2] = 128;
-			d[i + 3] = 255;
-		}
-	}
-
-	ctx.putImageData(img, 0, 0);
-	return { url: cv.toDataURL(), peak };
-}
-
-function sync() {
-	const strength = sEl.value / 100;
-	const curve    = cEl.value / 100;
-	const blur     = pEl.value / 100;
-
-	const { url, peak } = buildMap(strength, curve);
-	mapImg.setAttribute('href', url);
-	mapImg.setAttributeNS(XLINK, 'xlink:href', url);   // Safari still wants this
-
-	// the map is normalised, so `scale` is what carries the real magnitude.
-	// it is in pixels and the layout is a percentage, hence the resize handler.
-	disp.setAttribute('scale', showmap.checked ? 0 : peak * tube.offsetWidth);
-
-	// swap the input to look at the map itself - the single most useful thing
-	// when a displacement filter is misbehaving. Look at the map, not the result.
-	disp.setAttribute('in', showmap.checked ? 'map' : 'SourceGraphic');
-
-	post.setAttribute('stdDeviation', blur);
-
-	document.getElementById('sv').textContent  = strength.toFixed(2);
-	document.getElementById('cv').textContent  = curve.toFixed(2);
-	document.getElementById('pbv').textContent = blur.toFixed(2);
-}
-
-[sEl, cEl, pEl].forEach(el => el.addEventListener('input', sync));
-showmap.addEventListener('change', sync);
-
-// rebuilding a 512x512 map on every resize event is wasteful, so wait for the
-// dragging to stop
-let t;
-addEventListener('resize', () => { clearTimeout(t); t = setTimeout(sync, 100); });
-
-sync();
-</script>
+		<feDisplacementMap in="SourceGraphic" in2="map" scale="80"
+		                   xChannelSelector="R" yChannelSelector="G"/>
+	</filter>
+</svg>
 
 </body>
 </html>

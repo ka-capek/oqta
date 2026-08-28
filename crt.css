@@ -1,62 +1,78 @@
+/* =====================================================================
+   CRT  ·  geometry only
+
+   The bulge is the one thing CSS genuinely cannot do alone. Every CSS
+   transform is affine - it keeps straight lines straight - so a barrel
+   warp needs an SVG filter, pulled in from CSS with filter: url(). That
+   is the only non-CSS piece: no canvas, no WebGL, no script, and the
+   text underneath stays real text.
+
+   The displacement map is built inside the filter out of three stretched
+   gradients, so there is no bitmap to ship:
+
+       gx   horizontal ramp, black -> white      x, 0..1
+       gy   vertical   ramp, black -> white      y, 0..1
+       w    radial, black centre -> white rim    weight, r^2 stops
+
+   combined per channel as   map = w * (g - 0.5) + 0.5
+
+   which is exactly the barrel law: the sample offset points away from
+   the centre and grows with r^2, so the middle keeps its scale while the
+   corners get pulled in - and straight edges bow outwards.
+
+   The knob is scale="" on feDisplacementMap in crt.html. It is measured
+   in pixels, so it does not track the viewport; on a phone the same
+   number reads as a rounder tube.
+
+   No lighting, no glare, no scanlines - that half is yours.
+   ===================================================================== */
+
+* { box-sizing: border-box; }
+
 body {
 	margin: 0;
-	background: #0a0a0a;
-	color: #eee;
-	font-family: Georgia, 'Times New Roman', serif;
+	min-height: 100vh;
+	padding: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: black;
+	font-family: Georgia, "Times New Roman", serif;
+}
+
+/* The warped element. The padding is not decoration: it is the room the
+   bulge needs. The filter region is this box, the screen has to sit
+   inside it, and the corners have to have somewhere to be pulled to. */
+.crt {
+	width: min(1040px, 96vw);
+	padding: 5.5% 6.5%;
+	filter: url(#crt-bulge);
+}
+
+.crt-screen {
+	min-height: 60vh;
+	padding: 28px 40px 48px;
+	background: white;
+	color: black;
 }
 
 nav {
 	display: flex;
+	flex-wrap: nowrap;
 	justify-content: center;
 	gap: .4em;
-	padding: 18px 0 0;
 }
 
 nav a {
-	color: #eee;
-	text-decoration: none;
-	border: solid 1.5px #555;
+	flex-shrink: 1;
+	white-space: nowrap;
+	margin: .4em .2em;
 	padding: 0 .5em;
-	font-size: 1.1em;
+	font-size: 2em;
+	border: solid 1.5px black;
+	box-shadow: 5px 5px 2px grey;
+	text-decoration: none;
+	color: black;
 }
 
-nav a:hover {
-	border-color: #8ecfff;
-	color: #8ecfff;
-}
-
-/* --- the tube ------------------------------------------------------------ */
-
-.crt-tube {
-	width: 800px;
-	max-width: 760px;
-	margin: 40px auto;
-	padding: 70px;
-
-	filter: url(#bulge);
-}
-
-.crt-screen {
-	background: #fdfdf8;
-	color: #111;
-	padding: 36px 40px;
-	box-sizing: border-box;
-}
-
-.crt-screen h1 {
-	margin: 0 0 .4em;
-}
-
-.crt-screen p {
-	line-height: 1.55;
-}
-
-/* straight lines make the geometry obvious in a way text does not */
-.grid {
-	height: 150px;
-	margin-top: 22px;
-	border: 1px solid #aaa;
-	background-image:
-		repeating-linear-gradient(to right,  #aaa 0 1px, transparent 1px 30px),
-		repeating-linear-gradient(to bottom, #aaa 0 1px, transparent 1px 30px);
-}
+main { margin-top: 24px; }
