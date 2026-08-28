@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>CRT</title>
+	<link rel="icon" href="../favicon.png">
+	<link rel="stylesheet" href="../crt.css">
+</head>
+<body>
+
+<!-- =========================================================================
+     THE FILTER
+
+     Four things worth knowing:
+
+     1. feImage loads the map that the script paints into a canvas.
+        preserveAspectRatio="none" is required - without it the map letterboxes
+        instead of stretching, and the bulge ends up off-centre.
+
+     2. feDisplacementMap reads R for the X move and G for the Y move.
+        The default channel is A, which on an opaque map means "shift
+        everything by scale/2" - always set both selectors.
+
+     3. color-interpolation-filters="sRGB" is required. The default is
+        linearRGB, which converts the map's values before reading them, so
+        the numbers you painted are not the numbers it uses.
+
+     4. the region is 0%/100% so the map lines up exactly with .crt-tube.
+        The default region is -10%/120%, which would make the map 20% larger
+        than the box and knock the bulge out of alignment.
+     ========================================================================= -->
+<svg width="0" height="0" style="position:absolute">
+	<defs>
+		<filter id="bulge" color-interpolation-filters="sRGB"
+		        x="0%" y="0%" width="100%" height="100%">
+
+			<feImage id="mapImg" preserveAspectRatio="none" result="map"/>
+
+			<feDisplacementMap id="disp" in="SourceGraphic" in2="map"
+			                   scale="0"
+			                   xChannelSelector="R" yChannelSelector="G"/>
+
+			<!-- feDisplacementMap resamples with nearest-neighbour, so glyph
+			     edges come out chewed. A little blur takes the edge off it.
+			     0.3-0.5 is the useful range; past ~0.6 you are just blurring
+			     the page. Set stdDeviation="0" to see the raw output. -->
+			<feGaussianBlur id="post" stdDeviation="0.35"/>
+		</filter>
+	</defs>
+</svg>
+
+<nav>
+	<a href="index.html">home</a>
+</nav>
+
+<div class="crt-tube" id="tube">
+	<div class="crt-screen">
+		<h1>Oqta</h1>
+		<p>Welcome to my personal site! I want to make this my own corner of the
+		internet. Good vibes, clanker-free.</p>
+		<p>The grid below is the honest test &mdash; straight lines show the
+		geometry that text hides.</p>
+		<div class="grid"></div>
+	</div>
+</div>
+
+<script>
+const tube    = document.getElementById('tube');
+const mapImg  = document.getElementById('mapImg');
+const disp    = document.getElementById('disp');
+const post    = document.getElementById('post');
+const sEl     = 0.16;
+const cEl     = 0.20;
+const pEl     = 0.35;
+const showmap = document.getElementById('showmap');
+const XLINK   = 'http://www.w3.org/1999/xlink';
+
+/* ---------------------------------------------------------------------------
+   Paint the displacement map into a canvas, one pixel at a time.
+
+     R = how far to move in X
+     G = how far to move in Y
+     128 = stay put
+
+   The maths, for a pixel at (x, y) where both run -1 .. 1 across the box:
+
+     gx = (1 - y*y) ^ curve          how much of the horizontal push applies
+                                     at this height
+     dx = -x * strength * gx
+
+   The minus sign is the important bit. Every output pixel samples INWARD
+   (left of centre pulls from the right, and vice versa), which spreads the
+   content OUTWARD. That is the bulge.
+
+   `curve` shapes the edges:
+     0.20  push stays near-uniform down the whole edge -> straight, sharp edges
+     1.00  push tapers to nothing at the corners       -> edges arc into them
+   Low values are what keep the edges crisp.
+
+   Everything is divided by `peak` so the map uses the full 0-255 range. Skip
+   that and you would only use ~40 of the 255 levels, and since each level is
+   worth several pixels at this scale, the result comes out in visible
+   stair-steps.
+   --------------------------------------------------------------------------- */
+function buildMap(strength, curve, N = 512) {
+	const cv = document.createElement('canvas');
+	cv.width = cv.height = N;
+	const ctx = cv.getContext('2d');
+	const img = ctx.createImageData(N, N);
+	const d = img.data;
+
+	const peak = strength || 1e-6;          // the largest |dx| we will produce
+
+	for (let py = 0; py < N; py++) {
+		for (let px = 0; px < N; px++) {
+			const x = (px / (N - 1)) * 2 - 1;
+			const y = (py / (N - 1)) * 2 - 1;
+
+			const gx = Math.pow(Math.max(0, 1 - y * y), curve);
+			const gy = Math.pow(Math.max(0, 1 - x * x), curve);
+
+			const dx = -x * strength * gx / peak;
+			const dy = -y * strength * gy / peak;
+
+			const i = (py * N + px) * 4;
+			d[i]     = Math.max(0, Math.min(255, Math.round(128 + 127 * dx)));
+			d[i + 1] = Math.max(0, Math.min(255, Math.round(128 + 127 * dy)));
+			d[i + 2] = 128;
+			d[i + 3] = 255;
+		}
+	}
+
+	ctx.putImageData(img, 0, 0);
+	return { url: cv.toDataURL(), peak };
+}
+
+function sync() {
+	const strength = sEl.value / 100;
+	const curve    = cEl.value / 100;
+	const blur     = pEl.value / 100;
+
+	const { url, peak } = buildMap(strength, curve);
+	mapImg.setAttribute('href', url);
+	mapImg.setAttributeNS(XLINK, 'xlink:href', url);   // Safari still wants this
+
+	// the map is normalised, so `scale` is what carries the real magnitude.
+	// it is in pixels and the layout is a percentage, hence the resize handler.
+	disp.setAttribute('scale', showmap.checked ? 0 : peak * tube.offsetWidth);
+
+	// swap the input to look at the map itself - the single most useful thing
+	// when a displacement filter is misbehaving. Look at the map, not the result.
+	disp.setAttribute('in', showmap.checked ? 'map' : 'SourceGraphic');
+
+	post.setAttribute('stdDeviation', blur);
+
+	document.getElementById('sv').textContent  = strength.toFixed(2);
+	document.getElementById('cv').textContent  = curve.toFixed(2);
+	document.getElementById('pbv').textContent = blur.toFixed(2);
+}
+
+[sEl, cEl, pEl].forEach(el => el.addEventListener('input', sync));
+showmap.addEventListener('change', sync);
+
+// rebuilding a 512x512 map on every resize event is wasteful, so wait for the
+// dragging to stop
+let t;
+addEventListener('resize', () => { clearTimeout(t); t = setTimeout(sync, 100); });
+
+sync();
+</script>
+
+</body>
+</html>

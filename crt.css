@@ -1,0 +1,62 @@
+body {
+	margin: 0;
+	background: #0a0a0a;
+	color: #eee;
+	font-family: Georgia, 'Times New Roman', serif;
+}
+
+nav {
+	display: flex;
+	justify-content: center;
+	gap: .4em;
+	padding: 18px 0 0;
+}
+
+nav a {
+	color: #eee;
+	text-decoration: none;
+	border: solid 1.5px #555;
+	padding: 0 .5em;
+	font-size: 1.1em;
+}
+
+nav a:hover {
+	border-color: #8ecfff;
+	color: #8ecfff;
+}
+
+/* --- the tube ------------------------------------------------------------ */
+
+.crt-tube {
+	width: 800px;
+	max-width: 760px;
+	margin: 40px auto;
+	padding: 70px;
+
+	filter: url(#bulge);
+}
+
+.crt-screen {
+	background: #fdfdf8;
+	color: #111;
+	padding: 36px 40px;
+	box-sizing: border-box;
+}
+
+.crt-screen h1 {
+	margin: 0 0 .4em;
+}
+
+.crt-screen p {
+	line-height: 1.55;
+}
+
+/* straight lines make the geometry obvious in a way text does not */
+.grid {
+	height: 150px;
+	margin-top: 22px;
+	border: 1px solid #aaa;
+	background-image:
+		repeating-linear-gradient(to right,  #aaa 0 1px, transparent 1px 30px),
+		repeating-linear-gradient(to bottom, #aaa 0 1px, transparent 1px 30px);
+}
