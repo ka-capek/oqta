@@ -76,3 +76,8 @@ nav a {
 }
 
 main { margin-top: 24px; }
+
+.page a {
+	text-decoration: none;
+	background: white;
+}
