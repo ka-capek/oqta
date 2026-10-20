@@ -1,0 +1,33 @@
+/* kacapek.dev — that's all of it. */
+
+body {
+	max-width: 36em;
+	margin: 2em auto;
+	padding: 0 1em;
+	background: #fff;
+	color: #000;
+	font-family: "Times New Roman", Times, serif;
+	font-size: 18px;
+	line-height: 1.45;
+}
+
+a { color: #000; }
+a:hover { background: #000; color: #fff; text-decoration: none; }
+
+header h1 { margin: 0; font-size: 2.2em; letter-spacing: -0.02em; }
+header p  { margin: 0 0 .6em; font-style: italic; }
+
+nav { font-family: monospace; font-size: .9em; }
+
+hr { border: 0; border-top: 1px solid #000; margin: 1.5em 0; }
+
+h2 { font-size: 1.15em; margin: 1.6em 0 .4em; }
+h2::before { content: "§ "; }
+
+dl dt { font-family: monospace; }
+dl dd { margin: 0 0 .6em 1.5em; }
+
+.log { list-style: none; padding: 0; font-family: monospace; font-size: .9em; }
+.log time { margin-right: .6em; }
+
+footer { font-size: .8em; font-family: monospace; }

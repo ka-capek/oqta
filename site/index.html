@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>kacapek.dev</title>
+	<meta name="description" content="Karel's own corner of the internet. Demos and ideas.">
+	<link rel="icon" href="data:,">
+	<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+	<header>
+		<h1>kacapek.dev</h1>
+		<p>my own corner of the internet. good vibes, clanker-free.</p>
+		<nav>
+			[ <a href="/">home</a> ]
+			[ <a href="/demos/">demos</a> ]
+			[ <a href="/ideas.html">ideas</a> ]
+		</nav>
+	</header>
+
+	<hr>
+
+	<main>
+		<p>hi, I'm Karel. this is where I put the stuff I make and the stuff I'd like to make someday.</p>
+
+		<h2>working on</h2>
+		<dl>
+			<dt>relay-desktop</dt>
+			<dd>github desktop, but with multiple account support. (vibecoded)</dd>
+		</dl>
+		<p>that's it! I don't do shit.</p>
+
+		<h2>elsewhere</h2>
+		<ul>
+			<li><a href="https://x.com/cbat_05">twitter</a></li>
+			<li><a href="https://open.spotify.com/user/karel007700">spotify</a></li>
+			<li><a href="https://github.com/ka-capek">github</a></li>
+		</ul>
+
+		<h2>log</h2>
+		<ul class="log">
+			<li><time datetime="2026-10-20">2026-10-20</time> tore it all down. plain html now. hosted on a raspberry pi.</li>
+		</ul>
+	</main>
+
+	<hr>
+
+	<footer>
+		plain html &middot; served from a raspberry pi
+	</footer>
+
+	<script>
+		// Retire the leftover worker from when this domain served something else.
+		if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations()
+			.then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+	</script>
+</body>
+</html>
