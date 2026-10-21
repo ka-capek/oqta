@@ -31,3 +31,10 @@ dl dd { margin: 0 0 .6em 1.5em; }
 .log time { margin-right: .6em; }
 
 footer { font-size: .8em; font-family: monospace; }
+
+.me {
+	float: right;
+	margin: 0 0 1em 1em;
+	border: 1px solid #000;
+	image-rendering: pixelated;
+}
